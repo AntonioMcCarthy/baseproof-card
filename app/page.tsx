@@ -285,7 +285,16 @@ export default function Home() {
                 className="hard-button flex min-h-12 items-center justify-center gap-2 bg-white px-5 py-3 font-black"
                 disabled={isConnecting || busy}
                 key={id}
-                onClick={() => connect({ connector, chainId: base.id })}
+                onClick={() =>
+                  connect(
+                    { connector, chainId: base.id },
+                    {
+                      onError(error) {
+                        setMessage(getErrorMessage(error));
+                      }
+                    }
+                  )
+                }
               >
                 <Wallet size={18} />
                 {label}

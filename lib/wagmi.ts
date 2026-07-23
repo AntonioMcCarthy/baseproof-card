@@ -40,7 +40,7 @@ export const metaMaskConnector = injected({
 
 export const coinbaseConnector = coinbaseWallet({
   appName: "BaseProof Card",
-  preference: "all"
+  preference: { options: "all" }
 });
 
 export const baseAccountConnector = baseAccount({
@@ -51,8 +51,7 @@ export const baseAccountConnector = baseAccount({
 export const walletButtons = [
   { id: "okx", label: "OKX Wallet", connector: okxConnector },
   { id: "metamask", label: "MetaMask", connector: metaMaskConnector },
-  { id: "coinbase", label: "Coinbase Wallet", connector: coinbaseConnector },
-  { id: "base-account", label: "Base Account", connector: baseAccountConnector }
+  { id: "coinbase", label: "Coinbase Wallet", connector: coinbaseConnector }
 ] as const;
 
 export const wagmiConfig = createConfig({
