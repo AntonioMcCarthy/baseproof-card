@@ -1,12 +1,11 @@
 import { createClient, http } from "viem";
 import type { EIP1193Provider } from "viem";
 import { base } from "viem/chains";
-import { createConfig } from "wagmi";
+import { cookieStorage, createConfig, createStorage } from "wagmi";
+import { baseAccount } from "wagmi/connectors/baseAccount";
 import { coinbaseWallet } from "wagmi/connectors/coinbaseWallet";
 import { injected } from "wagmi/connectors/injected";
-
-const envSuffix = process.env.NEXT_PUBLIC_DATA_SUFFIX;
-export const dataSuffix = (envSuffix && /^0x[0-9a-fA-F]*$/.test(envSuffix) ? envSuffix : "0x") as `0x${string}`;
+import { dataSuffix } from "@/lib/attribution";
 
 export const okxConnector = injected({
   target() {
@@ -41,20 +40,27 @@ export const metaMaskConnector = injected({
 
 export const coinbaseConnector = coinbaseWallet({
   appName: "BaseProof Card",
-  preference: "eoaOnly"
+  preference: "all"
+});
+
+export const baseAccountConnector = baseAccount({
+  appName: "BaseProof Card",
+  preference: { options: "all" }
 });
 
 export const walletButtons = [
   { id: "okx", label: "OKX Wallet", connector: okxConnector },
   { id: "metamask", label: "MetaMask", connector: metaMaskConnector },
-  { id: "coinbase", label: "Coinbase Wallet", connector: coinbaseConnector }
+  { id: "coinbase", label: "Coinbase Wallet", connector: coinbaseConnector },
+  { id: "base-account", label: "Base Account", connector: baseAccountConnector }
 ] as const;
 
 export const wagmiConfig = createConfig({
   chains: [base],
-  connectors: [okxConnector, metaMaskConnector, coinbaseConnector],
+  connectors: [okxConnector, metaMaskConnector, coinbaseConnector, baseAccountConnector],
   client({ chain }) {
     return createClient({ chain, transport: http(), dataSuffix });
   },
+  storage: createStorage({ storage: cookieStorage }),
   ssr: true
 });

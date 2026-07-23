@@ -1,18 +1,20 @@
 "use client";
 
-import { BadgeCheck, CircleUserRound, Coins, Copy, Flame, Heart, IdCard, Loader2, LogOut, Sparkles, Wallet } from "lucide-react";
+import { BadgeCheck, CircleUserRound, Copy, Flame, Heart, IdCard, Loader2, LogOut, Sparkles, Wallet } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Address, isAddress, zeroAddress } from "viem";
+import { Address, encodeFunctionData, Hex, isAddress, zeroAddress } from "viem";
 import { base } from "viem/chains";
 import {
   useAccount,
   useConnect,
   useDisconnect,
   useReadContracts,
+  useSendCalls,
+  useSendTransaction,
   useSwitchChain,
   useWaitForTransactionReceipt,
-  useWriteContract
 } from "wagmi";
+import { dataSuffix, withDataSuffix } from "@/lib/attribution";
 import { baseProofCardAbi, baseProofCardAddress } from "@/lib/contracts";
 import { walletButtons } from "@/lib/wagmi";
 
@@ -50,7 +52,8 @@ export default function Home() {
   const { connect, isPending: isConnecting } = useConnect();
   const { disconnect } = useDisconnect();
   const { switchChainAsync } = useSwitchChain();
-  const { writeContractAsync, data: hash, isPending: isWriting } = useWriteContract();
+  const { sendCallsAsync, isPending: isSendingCalls } = useSendCalls();
+  const { sendTransactionAsync, data: hash, isPending: isSendingTransaction } = useSendTransaction();
   const receipt = useWaitForTransactionReceipt({ hash });
 
   const [nickname, setNickname] = useState(fallbackProfile.nickname);
@@ -151,11 +154,32 @@ export default function Home() {
     return true;
   }
 
-  async function runAction(action: string, request: () => Promise<`0x${string}`>) {
+  async function sendAttributedCall(callData: Hex) {
+    try {
+      const result = await sendCallsAsync({
+        account: address,
+        chainId: base.id,
+        calls: [{ to: baseProofCardAddress, data: callData }],
+        capabilities: { dataSuffix: { value: dataSuffix } },
+        experimental_fallback: true
+      });
+
+      return result.id as `0x${string}`;
+    } catch {
+      return sendTransactionAsync({
+        account: address,
+        chainId: base.id,
+        to: baseProofCardAddress,
+        data: withDataSuffix(callData)
+      });
+    }
+  }
+
+  async function runAction(action: string, callData: Hex) {
     if (!(await ensureReady())) return;
     try {
       setMessage(`${action} is waiting for wallet approval.`);
-      const txHash = await request();
+      const txHash = await sendAttributedCall(callData);
       remember(action, txHash);
       setMessage(`${action} submitted.`);
     } catch (error) {
@@ -163,7 +187,32 @@ export default function Home() {
     }
   }
 
-  const busy = isWriting || receipt.isLoading;
+  const mintData = () =>
+    encodeFunctionData({
+      abi: baseProofCardAbi,
+      functionName: "mint",
+      args: [cleanInput(nickname, fallbackProfile.nickname), bio.trim(), avatarURI.trim(), referrer]
+    });
+  const updateData = () =>
+    encodeFunctionData({
+      abi: baseProofCardAbi,
+      functionName: "updateProfile",
+      args: [selectedTokenId, cleanInput(nickname, fallbackProfile.nickname), bio.trim(), avatarURI.trim(), referrer]
+    });
+  const likeData = () =>
+    encodeFunctionData({
+      abi: baseProofCardAbi,
+      functionName: "like",
+      args: [selectedTokenId, referrer]
+    });
+  const confirmData = () =>
+    encodeFunctionData({
+      abi: baseProofCardAbi,
+      functionName: "confirm",
+      args: [selectedTokenId, referrer]
+    });
+
+  const busy = isSendingCalls || isSendingTransaction || receipt.isLoading;
   const profileName = isConnected ? profile.nickname : fallbackProfile.nickname;
   const profileBio = isConnected ? profile.bio : fallbackProfile.bio;
 
@@ -202,14 +251,7 @@ export default function Home() {
               disabled={busy}
               onClick={() =>
                 isConnected
-                  ? runAction("Mint", () =>
-                      writeContractAsync({
-                        address: baseProofCardAddress,
-                        abi: baseProofCardAbi,
-                        functionName: "mint",
-                        args: [cleanInput(nickname, fallbackProfile.nickname), bio.trim(), avatarURI.trim(), referrer]
-                      })
-                    )
+                  ? runAction("Mint", mintData())
                   : setMessage("Connect a wallet first.")
               }
             >
@@ -280,14 +322,7 @@ export default function Home() {
                 className="hard-button min-h-12 bg-[var(--orange)] px-5 py-3 font-black"
                 disabled={!isConnected || busy}
                 onClick={() =>
-                  runAction("Mint", () =>
-                    writeContractAsync({
-                      address: baseProofCardAddress,
-                      abi: baseProofCardAbi,
-                      functionName: "mint",
-                      args: [cleanInput(nickname, fallbackProfile.nickname), bio.trim(), avatarURI.trim(), referrer]
-                    })
-                  )
+                  runAction("Mint", mintData())
                 }
               >
                 Mint Card
@@ -296,14 +331,7 @@ export default function Home() {
                 className="hard-button min-h-12 bg-white px-5 py-3 font-black"
                 disabled={!isConnected || busy}
                 onClick={() =>
-                  runAction("Update", () =>
-                    writeContractAsync({
-                      address: baseProofCardAddress,
-                      abi: baseProofCardAbi,
-                      functionName: "updateProfile",
-                      args: [selectedTokenId, cleanInput(nickname, fallbackProfile.nickname), bio.trim(), avatarURI.trim(), referrer]
-                    })
-                  )
+                  runAction("Update", updateData())
                 }
               >
                 Update Profile
@@ -322,14 +350,7 @@ export default function Home() {
               className="hard-button flex min-h-12 items-center justify-center gap-2 bg-white px-5 py-3 font-black"
               disabled={!isConnected || busy}
               onClick={() =>
-                runAction("Like", () =>
-                  writeContractAsync({
-                    address: baseProofCardAddress,
-                    abi: baseProofCardAbi,
-                    functionName: "like",
-                    args: [selectedTokenId, referrer]
-                  })
-                )
+                runAction("Like", likeData())
               }
             >
               <Heart size={18} />
@@ -339,14 +360,7 @@ export default function Home() {
               className="hard-button flex min-h-12 items-center justify-center gap-2 bg-white px-5 py-3 font-black"
               disabled={!isConnected || busy}
               onClick={() =>
-                runAction("Confirm", () =>
-                  writeContractAsync({
-                    address: baseProofCardAddress,
-                    abi: baseProofCardAbi,
-                    functionName: "confirm",
-                    args: [selectedTokenId, referrer]
-                  })
-                )
+                runAction("Confirm", confirmData())
               }
             >
               <BadgeCheck size={18} />
