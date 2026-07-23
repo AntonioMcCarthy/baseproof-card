@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+:root {
+  --ink: #17120d;
+  --cream: #fff1d7;
+  --paper: #fffaf0;
+  --orange: #ff8a2a;
+  --yellow: #ffd84d;
+  --mint: #6be0b8;
+  --rose: #ffb199;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  color: var(--ink);
+  background:
+    linear-gradient(135deg, rgba(255, 138, 42, 0.14), transparent 34%),
+    radial-gradient(circle at 80% 8%, rgba(255, 216, 77, 0.24), transparent 28%),
+    repeating-linear-gradient(0deg, rgba(23, 18, 13, 0.025) 0 1px, transparent 1px 6px),
+    var(--cream);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+button,
+input,
+textarea {
+  font: inherit;
+}
+
+button {
+  touch-action: manipulation;
+}
+
+.hard-card {
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  box-shadow: 6px 6px 0 var(--ink);
+}
+
+.hard-button {
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 160ms ease, box-shadow 160ms ease, opacity 160ms ease;
+}
+
+.hard-button:hover:not(:disabled) {
+  transform: translate(2px, 2px);
+  box-shadow: 2px 2px 0 var(--ink);
+}
+
+.hard-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.field {
+  width: 100%;
+  border: 3px solid var(--ink);
+  border-radius: 14px;
+  background: #fffefa;
+  padding: 0.85rem 1rem;
+  outline: none;
+}
+
+.field:focus {
+  box-shadow: 0 0 0 4px rgba(255, 138, 42, 0.24);
+}
+
+.stripe {
+  background-image: repeating-linear-gradient(135deg, rgba(255, 138, 42, 0.26) 0 10px, transparent 10px 20px);
+}
